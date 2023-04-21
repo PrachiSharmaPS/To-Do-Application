@@ -8,6 +8,7 @@ export default function Home() {
       <div className="nav-links">
         <h2 className="logo">To Do App</h2>
         <div>
+          
         <Link to={"/"} className="nav-link">
           Home
         </Link>
