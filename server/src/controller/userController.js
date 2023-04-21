@@ -1,6 +1,6 @@
-const userModel = require('../model/userModel')
+const User = require('../model/userModel')
 const jwt=require("jsonwebtoken")
-const aws = require("../aws")
+
 const {valid,isValidPassword,isValidImage}=require("../middleware/validation")
 const emailValidator = require('email-validator')
 require('dotenv').config();
@@ -13,7 +13,6 @@ let regexValidNumber = /^(?:(?:\+|0{0,2})91(\s*[\-]\s*)?|[0]?)?[6789]\d{9}$/;
 const createUser = async function (req, res){
 try {
     let data = req.body
-    const profileImage = req.files
     
     if (Object.keys(data).length == 0) return res.status(400).send({ status: false, msg: "plzz give some data" })
 
@@ -29,14 +28,24 @@ try {
     if (!isValidPassword(password)){return res.status(400).send({ status: false, msg: " need a strong password which have special char,num,alph" });}
     if (!isValidImage(profileImage[0].originalname)) { return res.status(400).send({ status: false, message: "Profile Image formate is not valid" }) }
 
-    if (profileImage.length > 0) { var uploadedFileURL = await aws.uploadFile(profileImage[0]) }
-    else { return res.status(400).send({ status: false, message: 'please provide profile image' }) }
-
-    data.profile=uploadedFileURL
-    const check= await userModel.findOne({phone:phone},{email:email},{isDeleted: false })
-    if (check)return res.status(400).send({ status: false, msg: "Phone/email already exists" });
-
-    const user= await userModel.create(data);return  res.status(201).send({ status: true,msg:"Succes", Data: user })
+    
+   
+    const check = await User.findOne({
+      where: {
+        [Op.or]: [
+          { phone: phone },
+          { email: email }
+        ],
+        isDeleted: false
+      }
+    })
+    if (check) {
+      return res.status(400).send({ status: false, message: "Phone/email already exists" });
+    }
+    
+    const user = await User.create(data);
+    return res.status(201).send({ status: true, message: "Success", data: user });
+    
   }  catch(error) {res.status(500).send({ status: false, msg: error.message })}
 }
 // ---------------login----
@@ -49,12 +58,19 @@ const loginData = async function (req, res) {
       if (!emailValidator.validate(email)) return res.status(400).send({ status: false, msg: "Please Enter Valid email ID" })
       if (!isValidPassword(password)){return res.status(400).send({ status: false, msg: " Incorrect Password, It should be of 6-15 digits with atlest one special character, alphabet and number" });}
   
-      let userInfo = await userModel.findOne({ email: email, password: password });
-      if (!userInfo){
-        return res.status(400).send({ Status: false, massage: "Plase Enter Valid UserName And Password" })}
-  
+      const userInfo = await User.findOne({
+        where: {
+          email: email,
+          password: password
+        }
+      });
+      
+      if (!userInfo) {
+        return res.status(400).send({ status: false, message: "Please enter valid email and password" });
+      }
+      
       let userToken = jwt.sign({
-        userId: userInfo._id.toString(),//ye thi dikaat U h hona smal tha
+        userId: userInfo._id.toString(),
         iat: Date.now()
       },
       process.env.Secret,{expiresIn:"18000s"}
@@ -70,11 +86,15 @@ const loginData = async function (req, res) {
 const deleteUser= async function(req,res){
   try{
     const userId=req.params.userId
-
-    const user=await userModel.findOneAndUpdate({ _id: userId, isDeleted: false },{isDeleted:true},{new:true})
-    if(!user){ return res.status(404).send({status:true, msg:"Not found /deleted"})}
-
-    return res.status(200).send({Status: true,data:user})
+    const user = await User.findOneAndUpdate(
+      { _id: userId, isDeleted: false },
+      { isDeleted: true },
+      { new: true }
+    );
+    if (!user) {
+      return res.status(404).send({ status: true, message: "Not found/deleted" });
+    }
+    return res.status(200).send({ status: true, data: user });
 }
     catch (err) {
       return res.status(500).send({ status: false, errer: err })

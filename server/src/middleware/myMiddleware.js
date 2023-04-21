@@ -1,5 +1,5 @@
 const jwt=require("jsonwebtoken")
-const taskModel=require("../model/taskModel")
+const Task=require("../model/toDoModel")
 const { isValidObjectId } = require("mongoose")
 //----------------
 const authenticate = function (req, res, next) {
@@ -34,14 +34,17 @@ const isValidId=function(req,res,next){
 const authorization = async function (req, res, next) {
     try {
         let taskId = req.params.taskId
-        
-      
         if (taskId) {
-            
-            let checkUserId = await taskModel.findOne({ _id: taskId }).select({ userId: 1, _id: 0 })
-            if(!checkUserId){
-                return res.status(400).send({status:false,message:"task not found"})
-            }
+            const checkUserId = await Task.findOne({
+                where: {
+                  _id: taskId
+                },
+                attributes: ['userId']
+              });
+              if (!checkUserId) {
+                return res.status(400).send({ status: false, message: "Task not found" });
+              }
+              
             let userId = checkUserId.userId
             let id = req.decodedToken.userId
             if (id != userId) return res.status(403).send({ status: false, message: "You are not authorised to perform this task" })
