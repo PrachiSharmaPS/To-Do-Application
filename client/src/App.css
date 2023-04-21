@@ -241,7 +241,12 @@ button:hover {
 }
 
 
-
+.body-container {
+  background-image: url("https://source.unsplash.com/random/800x800/?todo-app");
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center center;
+}
 .body-container {
   max-width: 100%;
   margin: 0 auto;
