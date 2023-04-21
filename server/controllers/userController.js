@@ -7,7 +7,6 @@ const jwt = require("jsonwebtoken");
 async function regiserUser(req, res) {
   const { name, email, password } = req.body;
   let data = { email, password, name };
-  console.log(data);
 
   let isUser = await userModel.findOne({ email: email });
   if (isUser) {
@@ -55,7 +54,6 @@ async function login(req, res) {
 async function getUser(req, res) {
   try {
     let decoded = req.headers.decodedToken;
-    console.log(decoded);
 
     const email = decoded.email;
     const user = await userModel.findOne({ email: email });
